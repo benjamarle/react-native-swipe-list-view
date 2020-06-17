@@ -39,7 +39,6 @@ class SwipeRow extends Component {
         this.horizontalSwipeGestureBegan = false;
         this.swipeInitialX = null;
         this.parentScrollEnabled = true;
-        this.ranPreview = false;
         this._ensureScrollEnabledTimer = null;
         this.isForceClosing = false;
         this.state = {
@@ -48,6 +47,7 @@ class SwipeRow extends Component {
             leftActionState: this.props.initialLeftActionState || false,
             rightActionState: this.props.initialRightActionState || false,
             previewRepeatInterval: null,
+            ranPreview: false,
             timeBetweenPreviewRepeats: null,
             dimensionsSet: false,
             hiddenHeight: this.props.disableHiddenLayoutCalculation
@@ -177,6 +177,7 @@ class SwipeRow extends Component {
         }
     }
 
+    
     componentWillUnmount() {
         clearTimeout(this._ensureScrollEnabledTimer);
         this._translateX.removeAllListeners();
@@ -201,8 +202,25 @@ class SwipeRow extends Component {
         return false;
     }
 
+    componentDidUpdate(prevProps, prevState){
+        if (this.props.preview && !this.state.ranPreview) {
+            this.setState({
+                ranPreview: true
+            })
+            this.doFullAnimation();
+            if (this.props.previewRepeat) {
+                this.setState({
+                    previewRepeatInterval: setInterval(() => {
+                        this.doFullAnimation();
+                    }, this.state.timeBetweenPreviewRepeats),
+                });
+            }
+        }
+    } 
+
+
     static getDerivedStateFromProps(nextProps, prevState) {
-        if (!nextProps.previewRepeat) {
+        if (!nextProps.previewRepeat || !nextProps.preview) {
             clearInterval(prevState.previewRepeatInterval);
             prevState.previewRepeatInterval = null;
         }
@@ -233,21 +251,9 @@ class SwipeRow extends Component {
                   }
                 : {}),
         });
-
-        if (this.props.preview && !this.ranPreview) {
-            this.ranPreview = true;
-            this.doFullAnimation();
-            if (this.props.previewRepeat) {
-                this.setState({
-                    previewRepeatInterval: setInterval(() => {
-                        this.doFullAnimation();
-                    }, this.state.timeBetweenPreviewRepeats),
-                });
-            }
-        }
     }
 
-    doFullAnimation() {
+     doFullAnimation() {
         const previewOpenValue =
             this.props.previewOpenValue || this.props.rightOpenValue * 0.5;
         return this.getPreviewAnimation(
